@@ -7,6 +7,7 @@ import dataset
 from torch import nn
 from torch.utils.data import DataLoader, random_split
 from model.model import TumorSegmentationModel
+from sklearn.metrics import accuracy_score
 
 
 def get_train_test_loader(path_to_dataset, test_size = 0.3, transform = None):
@@ -23,6 +24,7 @@ def get_train_test_loader(path_to_dataset, test_size = 0.3, transform = None):
 def train(epochs = 30, dir_checkpoints = './checkpoints', path_to_dataset = './datasets'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+    # create folder checkpoint if it is not exist
     if dir_checkpoints != './checkpoints':
         os.mkdir(dir_checkpoints)
 
@@ -34,8 +36,8 @@ def train(epochs = 30, dir_checkpoints = './checkpoints', path_to_dataset = './d
     best_accuracy = 0
 
     # handle checkpoint
-    last_checkpoint = os.path.join(dir_checkpoints, 'last_checkpoint.pth')
-    best_checkpoint = os.path.join(dir_checkpoints, 'best_checkpoint.pth')
+    last_checkpoint = os.path.join(dir_checkpoints, 'last_checkpoint.pt')
+    best_checkpoint = os.path.join(dir_checkpoints, 'best_checkpoint.pt')
 
     if os.path.exists(last_checkpoint):
         print(f'[INFO]: Found last checkpoint at {last_checkpoint}. Loading...')
@@ -50,6 +52,7 @@ def train(epochs = 30, dir_checkpoints = './checkpoints', path_to_dataset = './d
         transforms.ToTensor(),
         # continue code here.
     ])
+
     train_loader, test_loader = get_train_test_loader(path_to_dataset, test_size=0.3, transform=transform)
 
     for epoch in range(start_epoch, epochs):
@@ -76,9 +79,20 @@ def train(epochs = 30, dir_checkpoints = './checkpoints', path_to_dataset = './d
                     all_predictions.append(output.detach().cpu().numpy())
                     all_labels.append(test_labels.detach().cpu().numpy())
 
+            accuracy = accuracy_score(all_predictions, all_labels)
 
+            checkpoint = {
+                'model_state': model.state_dict(),
+                'optimizer_state': optimizer.state_dict(),
+                'epoch': epoch,
+                'best_accuracy': best_accuracy,
+            }
 
+            torch.save(checkpoint, last_checkpoint)
+            if accuracy > best_accuracy:
+                best_accuracy = accuracy
+                torch.save(checkpoint, best_checkpoint)
+                print(f'[INFO]: New best checkpoint at epoch: {epoch + 1} with accuracy: {best_accuracy}')
 
-
-
-
+if __name__ == '__main__':
+    train()
