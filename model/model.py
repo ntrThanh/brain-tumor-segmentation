@@ -7,7 +7,7 @@ class TumorSegmentationModel(nn.Module):
         super(TumorSegmentationModel, self).__init__()
 
         # Encoder
-        self.encode1 = Encoder(3, 64)
+        self.encode1 = Encoder(1, 64)
         self.encode2 = Encoder(64, 128)
         self.encode3 = Encoder(128, 256)
         self.encode4 = Encoder(256, 512)
